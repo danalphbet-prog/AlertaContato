@@ -1,0 +1,46 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "ids": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && newData.val() === auth.uid && $id.matches(/^AC-[0-9]{8}$/)",
+        ".validate": "newData.isString()"
+      }
+    },
+    "profiles": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('contacts').child($uid).child(auth.uid).val() === true || root.child('requests').child(auth.uid).child($uid).exists())",
+        ".write": "auth != null && auth.uid === $uid && ((!data.exists() && root.child('ids').child(newData.child('personalId').val()).val() === auth.uid) || (data.exists() && newData.child('personalId').val() === data.child('personalId').val()))",
+        ".validate": "newData.hasChildren(['personalId','name','email']) && newData.child('name').isString() && newData.child('name').val().length <= 100 && newData.child('email').isString()"
+      }
+    },
+    "requests": {
+      "$to": {
+        ".read": "auth != null && auth.uid === $to",
+        "$from": {
+          ".read": "auth != null && (auth.uid === $from || auth.uid === $to)",
+          ".write": "auth != null && ((auth.uid === $from && auth.uid !== $to && !data.exists() && newData.child('status').val() === 'pending') || (auth.uid === $to && data.child('status').val() === 'pending' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'rejected') && newData.child('createdAt').val() === data.child('createdAt').val()))",
+          ".validate": "newData.hasChildren(['status','createdAt']) && newData.child('createdAt').isNumber()"
+        }
+      }
+    },
+    "contacts": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$other": {
+          ".write": "auth != null && !data.exists() && newData.val() === true && ((auth.uid === $uid && root.child('requests').child($uid).child($other).child('status').val() === 'accepted') || (auth.uid === $other && root.child('requests').child($other).child($uid).child('status').val() === 'accepted'))",
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+    "status": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('contacts').child($uid).child(auth.uid).val() === true)",
+        ".write": "auth != null && auth.uid === $uid && newData.hasChildren(['state','createdAt','eventId']) && newData.child('state').val() === 'SOS' && newData.child('createdAt').isNumber() && newData.child('eventId').isString() && newData.child('eventId').val().length <= 100 && (!data.exists() || newData.child('eventId').val() !== data.child('eventId').val())",
+        ".validate": "newData.hasChildren(['state','createdAt','eventId'])"
+      }
+    }
+  }
+}
